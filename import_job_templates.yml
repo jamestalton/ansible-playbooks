@@ -1,0 +1,40 @@
+---
+- name: Import job templates from a Git repository into Ansible Automation Platform
+  hosts: localhost
+  gather_facts: no
+  vars:
+    git_repo_url: "https://github.com/jtalton/ansbile-playbooks.git"
+    git_dest_dir: "/tmp/job_templates_repo"
+    job_template_file: "job_templates.yml"
+
+  tasks:
+    - name: Clone the Git repository containing job templates
+      ansible.builtin.git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ git_dest_dir }}"
+        update: yes
+
+    - name: Read job template definitions from YAML file
+      ansible.builtin.include_vars:
+        file: "{{ git_dest_dir }}/{{ job_template_file }}"
+        name: job_templates
+
+    - name: Import job templates into Ansible Automation Platform
+      loop: "{{ job_templates }}"
+      vars:
+        template: "{{ item }}"
+      awx.awx.job_template:
+        name: "{{ template.name }}"
+        description: "{{ template.description }}"
+        job_type: "{{ template.job_type | default('run') }}"
+        inventory: "{{ template.inventory }}"
+        project: "{{ template.project }}"
+        playbook: "{{ template.playbook }}"
+        credential: "{{ template.credential }}"
+        job_tags: "{{ template.job_tags | default('') }}"
+        skip_tags: "{{ template.skip_tags | default('') }}"
+        extra_vars: "{{ template.extra_vars | default({}) }}"
+        become_enabled: "{{ template.become_enabled | default(false) }}"
+        timeout: "{{ template.timeout | default(0) }}"
+      loop_control:
+        label: "{{ template.name }}"
