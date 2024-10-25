@@ -34,7 +34,7 @@
       loop: "{{ job_templates }}"
       vars:
         template: "{{ item }}"
-      awx.awx.job_template:
+      job_template:
         name: "{{ template.name }}"
         description: "{{ template.description }}"
         job_type: "{{ template.job_type | default('run') }}"
