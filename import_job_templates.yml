@@ -2,18 +2,22 @@
 - name: Import job templates from a Git repository into Ansible Automation Platform
   hosts: localhost
   gather_facts: no
+  collections:
+    - awx.awx
+    - ansible.builtin
+
   vars:
     git_repo_url: "https://github.com/jtalton/ansbile-playbooks.git"
     git_dest_dir: "/tmp/job_templates_repo"
     job_template_file: "job_templates.yml"
+    aap_url: "https://your-aap-instance.com"
+    aap_token: "{{ lookup('env', 'AAP_API_TOKEN') }}" # Use environment variable for security
 
   tasks:
     - name: Ensure awx.awx collection is installed
-      ansible.builtin.package:
-        name: awx.awx
-        state: present
-      when: ansible_version.full is version("2.9", ">=")
-      register: awx_collection_installed
+      ansible.builtin.command:
+        cmd: ansible-galaxy collection install awx.awx
+      changed_when: False
 
     - name: Clone the Git repository containing job templates
       ansible.builtin.git:
@@ -30,7 +34,7 @@
       loop: "{{ job_templates }}"
       vars:
         template: "{{ item }}"
-      job_template:
+      awx.awx.job_template:
         name: "{{ template.name }}"
         description: "{{ template.description }}"
         job_type: "{{ template.job_type | default('run') }}"
@@ -45,3 +49,7 @@
         timeout: "{{ template.timeout | default(0) }}"
       loop_control:
         label: "{{ template.name }}"
+      delegate_to: localhost
+      environment:
+        AAP_HOST: "{{ aap_url }}"
+        AAP_TOKEN: "{{ aap_token }}"
