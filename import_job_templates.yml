@@ -8,6 +8,13 @@
     job_template_file: "job_templates.yml"
 
   tasks:
+    - name: Ensure awx.awx collection is installed
+      ansible.builtin.package:
+        name: awx.awx
+        state: present
+      when: ansible_version.full is version("2.9", ">=")
+      register: awx_collection_installed
+
     - name: Clone the Git repository containing job templates
       ansible.builtin.git:
         repo: "{{ git_repo_url }}"
