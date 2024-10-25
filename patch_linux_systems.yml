@@ -1,0 +1,28 @@
+---
+- name: Patch Linux systems using certified content
+  hosts: all
+  become: yes
+  gather_facts: yes
+  collections:
+    - redhat.rhel_mgmt
+
+  tasks:
+    - name: Apply all updates on the system
+      include_role:
+        name: redhat.rhel_mgmt.system_update
+
+      vars:
+        rhel_mgmt_system_update_state: "latest"
+        rhel_mgmt_system_update_reboot: "if_needed"
+
+    - name: Reboot the system if required
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      when: rhel_mgmt_system_update_reboot_needed | default(false)
+
+    - name: Verify system is up to date
+      include_role:
+        name: redhat.rhel_mgmt.system_update_check
+
+      vars:
+        rhel_mgmt_system_update_check_state: "latest"
